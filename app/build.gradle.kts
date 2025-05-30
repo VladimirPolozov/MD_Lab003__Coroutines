@@ -6,7 +6,7 @@ plugins {
 
 android {
     namespace = "com.example.md_lab003__coroutines"
-    compileSdk = 34
+    compileSdk = 35
 
     defaultConfig {
         applicationId = "com.example.md_lab003__coroutines"
@@ -49,6 +49,16 @@ dependencies {
     implementation(libs.androidx.ui.graphics)
     implementation(libs.androidx.ui.tooling.preview)
     implementation(libs.androidx.material3)
+    implementation(libs.androidx.lifecycle.viewmodel.compose)
+    implementation(libs.coil.compose)
+    implementation(libs.converter.gson)
+    implementation(libs.gson)
+    implementation(libs.kotlinx.coroutines.android)
+    implementation(libs.kotlinx.coroutines.test)
+    implementation(libs.mockk)
+    implementation(libs.mockwebserver)
+    implementation(libs.retrofit)
+    implementation(libs.turbine)
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
