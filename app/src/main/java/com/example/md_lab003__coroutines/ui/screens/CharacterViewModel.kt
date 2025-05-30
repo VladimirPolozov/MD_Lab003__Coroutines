@@ -1,33 +1,69 @@
 package com.example.md_lab003__coroutines.ui.screens
 
-import android.util.Log
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.example.md_lab003__coroutines.model.data.Character
-import com.example.md_lab003__coroutines.model.network.RickAndMortyApi
+import com.example.md_lab003__coroutines.model.network.RickAndMortyApiService
+import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
+import retrofit2.HttpException
+import java.io.IOException
 
-class CharacterViewModel : ViewModel() {
+sealed interface RickAndMortyUiState {
+    data object Success : RickAndMortyUiState
+    data object Error : RickAndMortyUiState
+    data object Loading : RickAndMortyUiState
+}
+
+@Suppress("UNCHECKED_CAST")
+class RickAndMortyViewModelFactory(
+    private val api: RickAndMortyApiService
+) : ViewModelProvider.Factory {
+    override fun <T : ViewModel> create(modelClass: Class<T>): T {
+        if (modelClass.isAssignableFrom(RickAndMortyViewModel::class.java)) {
+            return RickAndMortyViewModel(api) as T
+        }
+        throw IllegalArgumentException("Unknown ViewModel class")
+    }
+}
+
+class RickAndMortyViewModel(
+    private val api: RickAndMortyApiService,
+    private val dispatcher: CoroutineDispatcher = Dispatchers.IO
+) : ViewModel() {
+    private val _rickAndMortyUiState =
+        MutableStateFlow<RickAndMortyUiState>(RickAndMortyUiState.Loading)
+    var rickAndMortyUiState: StateFlow<RickAndMortyUiState> = _rickAndMortyUiState
     private val _characters = MutableStateFlow<List<Character>>(emptyList())
     val characters: StateFlow<List<Character>> = _characters
 
-    fun fetchCharacters() {
-        val pageNumber: Int = (0..42).random()
-        viewModelScope.launch {
+    init {
+        fetchCharacters()
+    }
+
+    fun fetchCharacters(pageNumber: Int = 1) {
+        viewModelScope.launch(dispatcher) {
+            _rickAndMortyUiState.value = RickAndMortyUiState.Loading
             try {
-                Log.d("CharacterViewModel", "Characters loading...")
-                val response = RickAndMortyApi.retrofitService.getCharacters(pageNumber)
+                val response = api.getCharacters(pageNumber)
                 _characters.value = response.results
-                Log.d("CharacterViewModel", "Characters are loaded: ${response.results.size}")
-            } catch (e: Exception) {
-                Log.e("CharacterViewModel", "An error occurred during trying trying to load characters", e)
+                _rickAndMortyUiState.value = RickAndMortyUiState.Success
+            } catch (e: HttpException) {
+                _characters.value = emptyList()
+                _rickAndMortyUiState.value = RickAndMortyUiState.Error
+            } catch (e: IOException) {
+                _characters.value = emptyList()
+                _rickAndMortyUiState.value = RickAndMortyUiState.Error
             }
         }
     }
 
-    init {
-        fetchCharacters()
+    fun clearForTest() {
+        viewModelScope.cancel()
     }
 }
